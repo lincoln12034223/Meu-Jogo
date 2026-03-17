@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PROJETO LIMIAR v4</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&family=Creepster&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --blood:#7a0000;--dim:#060003;--ash:#b0a090;
+  --white:#ddd5c5;--red:#cc0000;--faint:#443333;
+  --mono:'Share Tech Mono',monospace;--serif:'Special Elite',cursive;
+}
+html,body{width:100%;min-height:100vh;background:var(--dim);color:var(--white);
+  font-family:var(--serif);overflow-x:hidden;cursor:crosshair;}
+
+/* GRAIN */
+body::before{content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:9999;opacity:0.4;}
+/* VIGNETTE */
+body::after{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,0.9) 100%);
+  pointer-events:none;z-index:9998;}
+
+/* SCANLINE */
+.scanline{position:fixed;top:0;left:0;width:100%;height:2px;
+  background:rgba(255,255,255,0.03);
+  animation:scan 6s linear infinite;pointer-events:none;z-index:9997;}
+@keyframes scan{0%{top:-2px}100%{top:100vh}}
+
+/* PROGRESS */
+#progress{position:fixed;top:0;left:0;height:2px;
+  background:linear-gradient(90deg,#3a0000,#cc0000,#3a0000);
+  transition:width .6s ease;z-index:10000;box-shadow:0 0 8px #cc0000;}
+
+/* DRIPS */
+.drip-wrap{position:fixed;top:0;left:0;width:100%;pointer-events:none;z-index:100;}
+.drip{position:absolute;top:0;width:2px;
+  background:linear-gradient(#7a0000,#3a000066,transparent);
+  animation:drip var(--dur,3s) ease-in var(--delay,0s) forwards;}
+@keyframes drip{0%{height:0;opacity:.9}100%{height:var(--len,80px);opacity:0}}
+
+/* SCREEN */
+#screen{min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:50px 20px;position:relative;}
+
+/* PHASE */
+.phase{animation:fadeIn .7s ease forwards;max-width:720px;width:100%;text-align:center;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes flicker{0%,100%{opacity:1}3%{opacity:.8}5%{opacity:1}50%{opacity:.96}52%{opacity:.78}54%{opacity:1}}
+@keyframes glitch{
+  0%,100%{clip-path:none;transform:none}
+  2%{clip-path:polygon(0 15%,100% 15%,100% 22%,0 22%);transform:translateX(-5px) skewX(-2deg)}
+  4%{clip-path:none;transform:none}
+  45%{clip-path:polygon(0 55%,100% 55%,100% 62%,0 62%);transform:translateX(4px)}
+  47%{clip-path:none;transform:none}
+}
+@keyframes wrongShake{
+  0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}
+  60%{transform:translateX(-6px)}80%{transform:translateX(6px)}
+}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+
+.phase-num{font-family:var(--mono);font-size:9px;color:#443333;
+  letter-spacing:8px;text-transform:uppercase;margin-bottom:28px;}
+.phase-title{font-size:clamp(20px,3.5vw,34px);color:var(--white);line-height:1.3;
+  margin-bottom:22px;text-shadow:0 0 25px rgba(180,0,0,.35);
+  animation:flicker 9s infinite;}
+.phase-title.glitch{animation:flicker 9s infinite,glitch 7s infinite;}
+.phase-title.big{font-size:clamp(26px,5vw,44px);color:#cc2222;
+  text-shadow:0 0 40px #cc222288,0 0 80px #66000044;}
+
+.phase-text{font-family:var(--mono);font-size:12px;color:var(--ash);
+  line-height:2.1;margin-bottom:24px;}
+.phase-text.sm{font-size:10px;color:#665555;}
+.phase-text.tiny{font-size:9px;color:#443333;letter-spacing:1px;}
+
+/* CIPHERS */
+.cipher{font-family:var(--mono);font-size:13px;color:#aa8866;
+  background:rgba(0,0,0,.65);border:1px solid #2a0a0a;
+  padding:14px 20px;margin:18px auto;letter-spacing:3px;
+  word-break:break-all;line-height:2;max-width:600px;position:relative;}
+.cipher::before,.cipher::after{content:'';position:absolute;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,#6b000066,transparent);}
+.cipher::before{top:0}.cipher::after{bottom:0}
+.cipher.bin{color:#cc6633;letter-spacing:2px;font-size:11px;line-height:1.9;}
+.cipher.morse{color:#aa9955;letter-spacing:5px;font-size:15px;}
+.cipher.invert{color:#0d0508 !important;background:#080305;border-color:#160a10;
+  user-select:all;transition:color .3s;}
+.cipher.invert:hover{color:#775544 !important;}
+.cipher.mirror{transform:scaleX(-1);}
+.cipher.flip{transform:scaleX(-1) scaleY(-1);}
+.cipher.sm{font-size:11px;}
+.cipher.spacing{letter-spacing:8px;}
+
+/* HIDDEN DARK TEXT - truly invisible until brightness up */
+.dark-secret{
+  font-family:var(--mono);font-size:11px;line-height:2;
+  padding:14px 20px;margin:14px auto;max-width:580px;
+  background:#040202;color:#0d0508;
+  border:1px solid #0f0408;user-select:all;
+  transition:color .4s,border-color .4s;
+}
+.dark-secret:hover{color:#6b4433;border-color:#2a1010;}
+
+/* REAL IMAGES */
+.img-wrap{margin:20px auto;max-width:520px;position:relative;overflow:hidden;
+  border:1px solid #1a0505;}
+.img-wrap img{width:100%;display:block;filter:brightness(0.18) contrast(1.4) saturate(0.3);
+  transition:filter 2s ease;}
+.img-wrap:hover img{filter:brightness(0.35) contrast(1.3) saturate(0.4);}
+.img-wrap .img-caption{font-family:var(--mono);font-size:8px;color:#2a1010;
+  text-align:center;padding:4px;letter-spacing:3px;background:#040202;}
+.img-wrap .img-overlay{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;pointer-events:none;}
+.img-wrap .img-overlay span{font-family:var(--mono);font-size:9px;color:#1a0a0a;
+  letter-spacing:2px;text-align:center;padding:4px;}
+
+/* INPUT */
+.answer-wrap{margin-top:36px;}
+.answer-input{
+  background:transparent;border:none;border-bottom:1px solid #441a1a;
+  color:var(--white);font-family:var(--mono);font-size:15px;
+  padding:10px 4px;width:340px;text-align:center;outline:none;
+  letter-spacing:3px;caret-color:#cc0000;transition:border-color .3s;
+}
+.answer-input:focus{border-color:#770000;}
+.answer-input.wrong{animation:wrongShake .45s ease;border-color:#cc0000 !important;}
+.answer-input.ok{border-color:#006600 !important;}
+.answer-hint{font-family:var(--mono);font-size:9px;color:#443333;
+  margin-top:10px;letter-spacing:2px;min-height:16px;transition:color .2s;}
+.answer-hint.err{color:#882222;}
+.answer-hint.win{color:#226622;}
+.tries{font-family:var(--mono);font-size:8px;color:#332222;
+  margin-top:6px;letter-spacing:2px;}
+
+/* AUDIO BTN */
+.audio-btn{font-family:var(--mono);font-size:9px;color:#442222;
+  letter-spacing:3px;margin:10px 0;cursor:pointer;
+  padding:6px 14px;border:1px solid #2a0a0a;display:inline-block;
+  background:rgba(0,0,0,.4);transition:all .2s;user-select:none;}
+.audio-btn:hover{color:#886644;border-color:#442222;}
+.audio-btn::before{content:'▶ ';}
+
+.sep{width:100px;height:1px;
+  background:linear-gradient(90deg,transparent,#3a0a0a,transparent);
+  margin:22px auto;}
+
+/* TOOLTIP */
+.tip{position:relative;cursor:help;border-bottom:1px dotted #331111;}
+.tip:hover::after{content:attr(data-t);position:absolute;bottom:130%;left:50%;
+  transform:translateX(-50%);background:#0a0305;border:1px solid #2a0808;
+  color:#776655;font-family:var(--mono);font-size:9px;padding:5px 10px;
+  white-space:nowrap;z-index:200;letter-spacing:1px;}
+
+/* COORDS */
+.coords{font-family:var(--mono);font-size:10px;color:#332222;
+  letter-spacing:2px;margin:6px 0;}
+
+/* WRONG SCREEN */
+.wrong-screen{animation:fadeIn .4s ease;}
+.wrong-screen h2{font-size:26px;color:#882222;text-shadow:0 0 20px #882222;
+  letter-spacing:4px;margin-bottom:16px;animation:flicker 3s infinite;}
+
+/* VICTORY */
+.victory h2{font-size:clamp(20px,4vw,32px);color:#cc2222;
+  text-shadow:0 0 40px #cc2222,0 0 80px #660000;
+  animation:flicker 2s infinite,pulse 1.5s infinite;letter-spacing:6px;}
+
+/* BLOCK HEADER */
+.block-header{font-family:var(--mono);font-size:8px;color:#221111;
+  letter-spacing:6px;margin-bottom:8px;text-transform:uppercase;}
+
+a.back{color:#443333;font-family:var(--mono);font-size:10px;
+  text-decoration:none;letter-spacing:3px;}
+a.back:hover{color:#775544;}
+
+/* WHISPER overlay */
+#whisperOverlay{position:fixed;inset:0;background:rgba(0,0,0,0);
+  pointer-events:none;z-index:9990;transition:background .5s;}
+#whisperOverlay.active{background:rgba(30,0,0,.15);}
+
+/* ── ADMIN PANEL ─────────────────────────────── */
+#adminBtn{
+  position:fixed;top:14px;right:14px;z-index:10001;
+  font-family:var(--mono);font-size:8px;color:#221111;
+  background:rgba(0,0,0,0.6);border:1px solid #1a0505;
+  padding:5px 10px;letter-spacing:2px;cursor:pointer;
+  transition:all .3s;user-select:none;
+}
+#adminBtn:hover{color:#664433;border-color:#3a1010;}
+#adminBtn.unlocked{color:#cc4422;border-color:#553322;
+  text-shadow:0 0 8px #cc442244;}
+#adminBtn.unlocked:hover{color:#ff6644;border-color:#884422;}
+
+#adminOverlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.92);
+  z-index:10002;display:none;flex-direction:column;
+  align-items:center;justify-content:flex-start;
+  padding:40px 20px;overflow-y:auto;
+}
+#adminOverlay.open{display:flex;}
+#adminOverlay h2{
+  font-family:var(--mono);font-size:14px;color:#cc4422;
+  letter-spacing:6px;margin-bottom:6px;
+  text-shadow:0 0 20px #cc442266;
+}
+#adminOverlay .admin-sub{
+  font-family:var(--mono);font-size:8px;color:#553333;
+  letter-spacing:3px;margin-bottom:30px;
+}
+#adminOverlay .admin-close{
+  position:absolute;top:16px;right:20px;
+  font-family:var(--mono);font-size:9px;color:#443333;
+  cursor:pointer;letter-spacing:2px;
+  transition:color .2s;
+}
+#adminOverlay .admin-close:hover{color:#884433;}
+
+/* Login form */
+#adminLogin{display:flex;flex-direction:column;align-items:center;gap:14px;}
+#adminLogin input{
+  background:transparent;border:none;border-bottom:1px solid #441a1a;
+  color:var(--white);font-family:var(--mono);font-size:14px;
+  padding:8px 4px;width:260px;text-align:center;outline:none;
+  letter-spacing:4px;caret-color:#cc0000;
+}
+#adminLogin .admin-hint{font-family:var(--mono);font-size:9px;
+  color:#443333;letter-spacing:2px;}
+#adminLogin .admin-hint.err{color:#882222;}
+#adminLogin .admin-hint.ok{color:#226622;}
+.admin-enter-btn{
+  padding:7px 22px;background:rgba(100,20,10,0.3);
+  border:1px solid #441a1a;color:#886655;
+  font-family:var(--mono);font-size:9px;cursor:pointer;
+  letter-spacing:2px;transition:all .2s;
+}
+.admin-enter-btn:hover{background:rgba(150,40,20,0.4);color:#cc8866;}
+
+/* Phase selector */
+#adminPanel{display:none;width:100%;max-width:800px;}
+#adminPanel h3{font-family:var(--mono);font-size:10px;color:#cc4422;
+  letter-spacing:4px;margin-bottom:20px;text-align:center;}
+.admin-blocks{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:8px;width:100%;}
+.admin-block-title{grid-column:1/-1;font-family:var(--mono);font-size:8px;
+  color:#553333;letter-spacing:4px;padding:8px 0 4px;
+  border-top:1px solid #1a0505;margin-top:8px;}
+.admin-phase-btn{
+  background:rgba(0,0,0,0.5);border:1px solid #1a0505;
+  color:#664433;font-family:var(--mono);font-size:7px;
+  padding:6px 8px;cursor:pointer;text-align:left;
+  transition:all .2s;letter-spacing:1px;line-height:1.4;
+}
+.admin-phase-btn:hover{background:rgba(80,20,10,0.4);color:#cc8866;border-color:#442211;}
+.admin-phase-btn .pnum{color:#331111;font-size:6px;display:block;margin-bottom:2px;}
+.admin-phase-btn .ptitle{display:block;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:120px;}
+.admin-phase-btn .pans{color:#221111;font-size:6px;display:block;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;}
+.admin-phase-btn:hover .pans{color:#664433;}
+.admin-search{
+  background:transparent;border:none;border-bottom:1px solid #331111;
+  color:var(--white);font-family:var(--mono);font-size:11px;
+  padding:6px 4px;width:300px;outline:none;letter-spacing:2px;
+  caret-color:#cc0000;margin-bottom:20px;
+}
+.admin-search::placeholder{color:#331111;}
+
+
+/* TRANSITIONS */
+@keyframes phaseOut{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-28px)}}
+@keyframes phaseIn{0%{opacity:0;transform:translateY(36px)}100%{opacity:1;transform:none}}
+@keyframes confetti{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+#transOverlay{position:fixed;inset:0;background:#000;pointer-events:none;z-index:9996;opacity:0;transition:opacity .35s;}
+#confettiWrap{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9993;overflow:hidden;}
+
+/* Audio hint - delayed reveal for non-headphone users */
+.audio-hint-txt{
+  font-family:var(--mono);font-size:9px;
+  color:#0f0808;letter-spacing:2px;margin-top:20px;
+  text-align:center;opacity:0;user-select:all;
+  animation:hintReveal 1s ease 20s forwards;
+  transition:color .5s;
+}
+.audio-hint-txt:hover{color:#775544;}
+@keyframes hintReveal{0%{opacity:0}100%{opacity:1}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div class="scanline"></div>
+<div class="drip-wrap" id="drips"></div>
+<div id="whisperOverlay"></div>
+
+<!-- ADMIN BUTTON -->
+<div id="adminBtn" onclick="adminOpen()">⚙ ADMIN</div>
+
+<!-- ADMIN OVERLAY -->
+<div id="adminOverlay">
+  <div class="admin-close" onclick="adminClose()">✕ FECHAR</div>
+  <h2>PAINEL ADMIN</h2>
+  <div class="admin-sub" id="adminSubtitle">ACESSO RESTRITO — INSIRA A SENHA</div>
+
+  <!-- LOGIN -->
+  <div id="adminLogin">
+    <input type="password" id="adminPwd" placeholder="_ _ _ _ _ _ _ _ _"
+      autocomplete="off" spellcheck="false"/>
+    <div class="admin-hint" id="adminHint">&gt; SENHA DO PROJETO</div>
+    <div class="admin-enter-btn" onclick="adminAuth()">ENTRAR</div>
+  </div>
+
+  <!-- PANEL (shown after auth) -->
+  <div id="adminPanel">
+    <h3>⚙ SELECIONE A FASE</h3>
+    <input class="admin-search" id="adminSearch" type="text"
+      placeholder="buscar fase ou resposta..." oninput="adminFilter()"/>
+    <div class="admin-blocks" id="adminBlocks"></div>
+  </div>
+</div>
+
+<div id="transOverlay"></div><div id="confettiWrap"></div>
+<div id="screen"><div id="phaseContent"></div></div>
+
+<script>
+'use strict';
+// ══════════════════════════════════════════════════
+// CIPHER UTILITIES
+// ══════════════════════════════════════════════════
+const Caesar=(t,n)=>t.replace(/[a-zA-Z]/g,c=>{const b=c<='Z'?65:97;return String.fromCharCode(((c.charCodeAt(0)-b+n+52)%26)+b);});
+const toBin=t=>[...t].map(c=>c.charCodeAt(0).toString(2).padStart(8,'0')).join(' ');
+const toHex=t=>[...t].map(c=>c.charCodeAt(0).toString(16).padStart(2,'0').toUpperCase()).join(' ');
+const atbash=t=>t.replace(/[a-zA-Z]/g,c=>{const b=c<='Z'?65:97;return String.fromCharCode(b+25-(c.charCodeAt(0)-b));});
+const toB64=t=>btoa(unescape(encodeURIComponent(t)));
+const rot13=t=>Caesar(t,13);
+const MORSE={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..',0:'-----',1:'.----',2:'..---',3:'...--',4:'....-',5:'.....',6:'-....',7:'--...',8:'---..',9:'----.',' ':'/'};
+const toMorse=t=>t.toUpperCase().replace(/[^A-Z0-9 ]/g,'').split('').map(c=>MORSE[c]||'').join(' ');
+const reverseStr=s=>s.split('').reverse().join('');
+const vigenere=(t,k)=>t.toUpperCase().replace(/[A-Z]/g,(c,i)=>{const ki=k.toUpperCase().charCodeAt(i%k.length)-65;return String.fromCharCode((c.charCodeAt(0)-65+ki)%26+65);});
+const pigpen=t=>t.toUpperCase().split('').map(c=>{const i=c.charCodeAt(0)-65;return i>=0&&i<26?`[${i+1}]`:c;}).join('');
+
+// ══════════════════════════════════════════════════
+// AUDIO ENGINE
+// ══════════════════════════════════════════════════
+let AC=null;
+const getAC=()=>{if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();return AC;};
+
+function beep(freq,dur,vol=2.5,type='sine',delay=0){
+  const a=getAC(),o=a.createOscillator(),g=a.createGain(),
+        f=a.createBiquadFilter();
+  o.connect(f);f.connect(g);g.connect(a.destination);
+  o.type=type;o.frequency.value=freq;
+  f.type='bandpass';f.frequency.value=freq;f.Q.value=1.5;
+  const t=a.currentTime+delay;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(vol,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.start(t);o.stop(t+dur+0.05);
+}
+
+function drone(dur=8,vol=0.7){
+  const a=getAC(),o=a.createOscillator(),
+        g=a.createGain(),f=a.createBiquadFilter();
+  o.connect(f);f.connect(g);g.connect(a.destination);
+  o.type='sawtooth';o.frequency.value=48;
+  f.type='lowpass';f.frequency.value=180;
+  const t=a.currentTime;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(vol,t+2);
+  g.gain.linearRampToValueAtTime(0,t+dur);
+  o.start(t);o.stop(t+dur+.1);
+}
+
+function playMorse(text,vol=3.0){
+  const a=getAC();
+  let t=a.currentTime+0.2;
+  const dot=0.12,dash=0.36,gap=0.1,cg=0.28;
+  toMorse(text).split('').forEach(c=>{
+    if(c==='.'){beepAt(680,dot,t,vol);t+=dot+gap;}
+    else if(c==='-'){beepAt(680,dash,t,vol);t+=dash+gap;}
+    else if(c===' '){t+=cg;}
+    else if(c==='/'){t+=0.5;}
+  });
+}
+function beepAt(freq,dur,when,vol=2.5){
+  const a=getAC(),o=a.createOscillator(),g=a.createGain();
+  o.connect(g);g.connect(a.destination);
+  o.type='sine';o.frequency.value=freq;
+  g.gain.setValueAtTime(vol,when);
+  g.gain.exponentialRampToValueAtTime(0.001,when+dur);
+  o.start(when);o.stop(when+dur+.05);
+}
+
+function playCreepy(notes){
+  notes.forEach(n=>beep(n.f,n.d,n.v||0.35,'sawtooth',n.t||0));
+}
+
+function wrongSound(){beep(120,0.6,0.5,'sawtooth');}
+function correctSound(){
+  beep(440,.1,.4,'sine');beep(550,.1,.4,'sine',.15);beep(660,.25,.4,'sine',.28);
+}
+
+function whisper(text){
+  if(!window.speechSynthesis)return;
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='pt-BR';u.volume=1.0;u.rate=0.65;u.pitch=0.4;
+  window.speechSynthesis.speak(u);
+  const ov=document.getElementById('whisperOverlay');
+  ov.classList.add('active');
+  setTimeout(()=>ov.classList.remove('active'),3000);
+}
+
+// ══════════════════════════════════════════════════
+// REAL IMAGE HELPER
+// ══════════════════════════════════════════════════
+// Using Unsplash Source (free, no key needed) + specific keywords
+const IMGS = {
+  eye:       'https://images.unsplash.com/photo-1559181567-c3190ca9d6ab?w=600&q=80',
+  skull:     'https://images.unsplash.com/photo-1605792657660-596af9009e82?w=600&q=80',
+  forest:    'https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&q=80',
+  door:      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
+  fog:       'https://images.unsplash.com/photo-1542662565-7e4b66bae529?w=600&q=80',
+  candle:    'https://images.unsplash.com/photo-1603006905003-be475563bc59?w=600&q=80',
+  blood:     'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&q=80',
+  stairs:    'https://images.unsplash.com/photo-1555505869-5f9929d7ed28?w=600&q=80',
+  mirror:    'https://images.unsplash.com/photo-1586943760498-a9b02ab8d3c3?w=600&q=80',
+  hand:      'https://images.unsplash.com/photo-1509909756405-be0199881695?w=600&q=80',
+  cemetery:  'https://images.unsplash.com/photo-1509815144093-3fe5c8079b77?w=600&q=80',
+  window:    'https://images.unsplash.com/photo-1493552152660-f915ab47ae9d?w=600&q=80',
+  shadow:    'https://images.unsplash.com/photo-1518710843675-2540dd79065c?w=600&q=80',
+  ritual:    'https://images.unsplash.com/photo-1518562923-a5089edd96c8?w=600&q=80',
+  symbol:    'https://images.unsplash.com/photo-1568493185671-0e9cabc5cc35?w=600&q=80',
+  water:     'https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=600&q=80',
+  dark_hall: 'https://images.unsplash.com/photo-1544084944-15269ec7b5a0?w=600&q=80',
+  old_paper: 'https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=600&q=80',
+  clock:     'https://images.unsplash.com/photo-1495364141860-b0d03eccd065?w=600&q=80',
+  roots:     'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=600&q=80',
+};
+
+function mkImg(key,caption='',overlayTxt='',brightness=0.12){
+  const wrap=document.createElement('div');
+  wrap.className='img-wrap';
+  const img=document.createElement('img');
+  img.src=IMGS[key]||IMGS.eye;
+  img.alt='';
+  img.style.filter=`brightness(${brightness}) contrast(1.5) saturate(0.2)`;
+  img.loading='lazy';
+  wrap.appendChild(img);
+  if(overlayTxt){
+    const ov=document.createElement('div');
+    ov.className='img-overlay';
+    ov.innerHTML=`<span>${overlayTxt}</span>`;
+    wrap.appendChild(ov);
+  }
+  const cap=document.createElement('div');
+  cap.className='img-caption';
+  cap.textContent=caption||'[ aumente o brilho — a verdade está escondida ]';
+  wrap.appendChild(cap);
+  return wrap;
+}
+
+// ══════════════════════════════════════════════════
+// DRIPS & EFFECTS
+// ══════════════════════════════════════════════════
+function spawnDrips(n=5){
+  const w=document.getElementById('drips');
+  w.innerHTML='';
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div');
+    d.className='drip';
+    d.style.cssText=`left:${Math.random()*100}%;--dur:${2+Math.random()*4}s;--delay:${Math.random()*3}s;--len:${60+Math.random()*120}px;width:${1+Math.random()*2}px;`;
+    w.appendChild(d);
+  }
+}
+
+function screenFlash(color='#3a0000'){
+  const f=document.createElement('div');
+  f.style.cssText=`position:fixed;inset:0;background:${color};pointer-events:none;z-index:9995;opacity:.4;transition:opacity .5s;`;
+  document.body.appendChild(f);
+  setTimeout(()=>{f.style.opacity='0';setTimeout(()=>f.remove(),600);},50);
+}
+
+// ══════════════════════════════════════════════════
+// PHASES DATA (150 PHASES)
+// ══════════════════════════════════════════════════
+// Format: { title, answer (lowercase, no accents), build(container) }
+// ANSWER is what player types. Spaces allowed for multi-word answers.
+// ══════════════════════════════════════════════════
+
+const PH = [];
+
+// helper to push phase
+const ph=(title,answer,buildFn,opts={})=>PH.push({title,answer:answer.toLowerCase(),build:buildFn,opts});
+
+// ── BLOCO 1: TUTORIAL (0-19) ─────────────────────
+ph('VOCÊ NÃO DEVERIA TER CLICADO','limiar',c=>{c.innerHTML+=`<div class="phase-text">Bem-vindo ao ███████ ██████.<br>Este site não existe.<br>Você não está aqui.</div><div class="sep"></div><div class="cipher invert" style="font-size:10px;letter-spacing:3px;">.-.. .. -- .. .- .-.</div>`;c.appendChild(mkImg('door','[ a porta está esperando ]'));});
+
+ph('A PRIMEIRA MENTIRA','sombra',c=>{
+  c.innerHTML+=`<div class="phase-text">████ começa com uma sombra.<br>Mas aqui as sombras têm outro nome.</div>
+  <div class="sep"></div>
+  <div class="cipher tip">${rot13('SOMBRA')}</div>
+  <div class="phase-text sm">O alfabeto tem 26 letras. A metade do caminho de si mesma.</div>
+  `;
+});
+
+ph('O QUE RESTA EM ZEROS','vazio',c=>{c.innerHTML+=`<div class="phase-text">Os registros foram traduzidos para a linguagem das máquinas.<br>Liga. Desliga. Presença. Ausência.</div><div class="sep"></div><div class="cipher bin">01010110 01000001 01011010 01001001 01001111</div>`;c.appendChild(mkImg('fog','','',0.08));});
+
+ph('O SINAL QUE NÃO PARA','pulso',c=>{c.innerHTML+=`<div class="phase-text">Em 1947 um sinal foi captado por 72 segundos.<br>Nunca explicado. Nunca repetido.</div><div class="sep"></div><div class="cipher morse">.--. ..- .-.. ... ---</div>`;const b=document.createElement('div');b.className='audio-btn';b.textContent='REPRODUZIR SINAL';b.onclick=()=>{drone(6,0.6);setTimeout(()=>playMorse('PULSO',3.0),1200);};c.appendChild(b);c.innerHTML+=``;});
+
+ph('O REFLEXO SABE DEMAIS','espelho',c=>{c.innerHTML+=`<div class="phase-text">O que está no começo também está no fim.<br>A=Z &nbsp; B=Y &nbsp; C=X</div><div class="sep"></div><div class="cipher" style="color:#997755;letter-spacing:5px;">VHKVOSL</div>`;c.appendChild(mkImg('mirror','','',0.08));});
+
+ph('O PORÃO DA RUA 13','sangue',c=>{
+  const enc=Caesar('SANGUE',7);
+  c.innerHTML+=`<div class="phase-text">No porão da Rua das Acácias, 13,<br>havia uma câmara sem janelas.<br>As paredes contavam algo.</div>
+  <div class="sep"></div>
+  <div class="cipher tip">${enc}</div>
+  <div class="phase-text sm">A casa tinha um número.<br>Esse número era diferente da chave.</div>
+  <div class="coords">13° S &nbsp;|&nbsp; 7° W</div>
+  `;
+  c.appendChild(mkImg('candle','[ a chama nunca apaga sozinha ]','',0.09));
+});
+
+ph('QUANTO MAIS FUNDO, MAIS ESCURO','camadas',c=>{c.innerHTML+=`<div class="phase-text">Há sempre outra camada abaixo.<br>E outra abaixo dessa.</div><div class="sep"></div><div class="cipher morse" style="font-size:12px;">-.-. .- -- .- -.. .- ...</div>`;const b=document.createElement('div');b.className='audio-btn';b.textContent='REPRODUZIR';b.onclick=()=>{drone(5,0.6);setTimeout(()=>playMorse('CAMADAS',3.0),1000);};c.appendChild(b);c.innerHTML+=`<div class="audio-hint-txt">[ sem fones &#8212; aguarde: C A M A D A S ]</div>`;});
+
+ph('ELA ESTAVA AQUI','cinzas',c=>{
+  c.innerHTML+=`<div class="phase-text">O diário foi encontrado em outubro de 1989.<br>A última entrada era ilegível — exceto por uma palavra.<br>
+  <span class="phase-text sm">A primeira letra de cada linha.</span></div>
+  <div class="sep"></div>
+  <div class="cipher" style="text-align:left;font-size:12px;line-height:2.4;">
+    <span style="color:#cc6644">C</span>hovia naquela noite de outubro<br>
+    <span style="color:#cc6644">I</span>rene não havia voltado<br>
+    <span style="color:#cc6644">N</span>inguém ouviu o grito<br>
+    <span style="color:#cc6644">Z</span>eros preenchiam o caderno<br>
+    <span style="color:#cc6644">A</span>s velas apagaram sozinhas<br>
+    <span style="color:#cc6644">S</span>ó restou o cheiro de terra
+  </div>`;
+  c.appendChild(mkImg('forest','[ ela caminhou para dentro e não voltou ]','',0.08));
+});
+
+ph('O SERVIDOR ABANDONADO','trevas',c=>{const enc=toB64('TREVAS');c.innerHTML+=`<div class="phase-text">Encontrado em servidor abandonado.<br>IP: 192.168.0.13 &#8212; último acesso: 13/10/1989</div><div class="sep"></div><div class="cipher" style="color:#887744;font-size:12px;">${enc}</div>`;});
+
+ph('NOVE SEGUNDOS','ossos',c=>{c.innerHTML+=`<div class="phase-text">A gravação durou 9 segundos.<br>O pesquisador nunca mais dormiu depois.</div><div class="sep"></div><div class="cipher morse" style="font-size:13px;">--- ... ... --- ...</div>`;const b=document.createElement('div');b.className='audio-btn';b.style.cssText='font-size:13px;padding:14px 24px;';b.textContent='REPRODUZIR GRAVAÇÃO';b.onclick=()=>{drone(7,0.65);setTimeout(()=>playMorse('OSSOS',3.0),1500);};c.appendChild(b);c.innerHTML+=`<div class="audio-hint-txt">[ sem fones &#8212; aguarde: O S S O S ]</div>`;c.appendChild(mkImg('skull','','',0.07));});
+
+ph('VOCÊ JÁ NÃO PODE VOLTAR','invertido',c=>{
+  c.innerHTML+=`<div class="phase-text">Dez passos foram dados. Dez restam.<br>Você já não pode voltar.</div>
+  <div class="sep"></div>
+  <div class="cipher flip" style="color:#997755;letter-spacing:5px;font-size:17px;">INVERTIDO</div>
+  <div class="phase-text sm" style="margin-top:18px">Vire a tela de cabeça para baixo.<br><span style="color:#332222">— ou simplesmente leia ao contrário —</span></div>
+  `;
+  c.appendChild(mkImg('eye','[ ELE SEMPRE VÊ ]','ELE VÊ TUDO',0.06));
+});
+
+ph('O NOME DELA','irene',c=>{
+  const enc=Caesar('IRENE',11);
+  c.innerHTML+=`<div class="phase-text">████ arquivo tem um autor.<br>████ crime tem uma vítima.<br>████ história tem um nome.</div>
+  <div class="sep"></div>
+  <div class="cipher tip">${enc}</div>
+  
+  `;
+  c.appendChild(mkImg('shadow','[ irene... você ainda está aí? ]','',0.07));
+});
+
+ph('AS PAREDES DO PORÃO','ritual',c=>{c.innerHTML+=`<div class="phase-text">As paredes do porão cobertas de símbolos.<br>Duas transformações. Uma palavra.</div><div class="sep"></div><div class="cipher mirror" style="color:#997755;">IRGFZO</div>`;c.appendChild(mkImg('ritual','','',0.07));const b=document.createElement('div');b.className='audio-btn';b.textContent='ÁUDIO';b.onclick=()=>playCreepy([{f:110,d:2,v:1.5},{f:98,d:2,t:.8,v:1.5},{f:82,d:3,t:1.6,v:1.5}]);c.appendChild(b);});
+
+ph('TREZE, SEMPRE TREZE','portal',c=>{c.innerHTML+=`<div class="phase-text">Treze. O número aparece em todo arquivo.<br>O que se abre nunca mais se fecha.</div><div class="sep"></div><div class="cipher bin" style="font-size:11px;">01010000 01001111 01010010 01010100 01000001 01001100</div>`;c.appendChild(mkImg('door','','',0.06));});
+
+ph('A TESTEMUNHA','sinal',c=>{
+  c.innerHTML+=`<div class="phase-text">O único sobrevivente deixou um depoimento.<br><span class="phase-text sm">A última letra de cada frase.</span></div>
+  <div class="sep"></div>
+  <div class="cipher" style="text-align:left;font-size:12px;line-height:2.4;">
+    Eu ouvi passos descendo a escadaS<br>
+    A janela estava aberta para o marI<br>
+    Havia marcas de sangue no chãoN<br>
+    O relógio parou às três e meioA<br>
+    Não havia mais nadasL
+  </div>
+  `;
+});
+
+ph('A RÁDIO QUE NINGUÉM LIGOU','espirito',c=>{const cae=Caesar('ESPIRITO',6);const mor=toMorse(cae);c.innerHTML+=`<div class="phase-text">Em 1966 uma rádio transmitiu por 6 minutos.<br>Ninguém a ligou. Ninguém a desligou.</div><div class="sep"></div><div class="cipher morse" style="font-size:10px;">${mor}</div>`;const b=document.createElement('div');b.className='audio-btn';b.textContent='TRANSMISSÃO DE 1966';b.onclick=()=>{drone(6,0.6);setTimeout(()=>playMorse(cae,3.0),1500);};c.appendChild(b);c.innerHTML+=``;});
+
+ph('TRÊS VEZES APAGADO','sombrio',c=>{c.innerHTML+=`<div class="phase-text">Deletado três vezes. Mas deletar não é apagar.<br>Os dados ainda estavam lá.</div><div class="sep"></div>`;c.appendChild(mkImg('dark_hall','[ aumente o brilho ao máximo ]','S O M B R I O',0.04));c.innerHTML+=`<div class="cipher invert" style="color:#0d0508;font-size:11px;">U09NQlJJTw==</div>`;c.innerHTML+=`<div class="phase-text sm" style="margin-top:12px">A imagem guarda o que foi apagado.</div>`;});
+
+ph('ÀS 03:13 DA MANHÃ','maldito',c=>{c.innerHTML+=`<div class="phase-text">Sinal captado às 03:13 da manhã.<br>A estação estava fechada.<br>O operador estava morto há 3 dias.</div><div class="sep"></div><div class="cipher morse">-- .- .-.. -.. .. - ---</div>`;const b=document.createElement('div');b.className='audio-btn';b.textContent='SINAL FINAL';b.onclick=()=>{playCreepy([{f:220,d:.5,v:2.4},{f:180,d:.5,t:.6,v:2.4}]);setTimeout(()=>playMorse('MALDITO',3.0),1200);};c.appendChild(b);c.appendChild(mkImg('cemetery','','',0.07));});
+
+ph('TRÊS VÉUS SOBRE A VERDADE','sepulcro',c=>{const s1=atbash('SEPULCRO');const s2=toB64(s1);c.innerHTML+=`<div class="phase-text"><br>Remova da exterior para a interior.</div><div class="sep"></div><div class="cipher" style="color:#887755;font-size:12px;">${s2}</div>`;c.appendChild(mkImg('cemetery','','',0.06));});
+
+ph('O LIMIAR SE ABRE','projeto limiar',c=>{c.innerHTML+=`<div class="phase-text">Você completou o tutorial.<br>Agora começa o que é real.</div><div class="sep"></div><div class="cipher bin sm" style="font-size:10px;">01010000 01010010 01001111 01001010 01000101 01010100 01001111</div><div class="cipher morse sm" style="margin-top:8px;">.-.. .. -- .. .- .-.</div><div class="cipher" style="margin-top:8px;color:#997755;">SURMHWR</div>`;const b=document.createElement('div');b.className='audio-btn';b.textContent='SINAL';b.onclick=()=>{drone(8,0.65);setTimeout(()=>playMorse('PROJETO LIMIAR',3.0),1500);};c.appendChild(b);});
+
+// ── BLOCO 2: INICIADO (20-49) ────────────────────
+
+ph('O QUE VOCÊ NÃO SABE','ela nunca voltou',c=>{
+  c.innerHTML+=`<div class="block-header">— INICIADO —</div>
+  <div class="phase-text">O tutorial acabou.<br>█████ começa o que é real.<br>
+  █████ saiu em 13 de outubro de 1989 às 22h.<br>
+  Seu carro foi encontrado na Rua do Cemitério.<br>
+  Ela não foi.</div>
+  <div class="sep"></div>`;
+  c.innerHTML+=`<div class="cipher morse" style="font-size:11px;">. .-.. .- / -. ..- -. -.-. .- / ...- --- .-.. - --- ..-</div>`;c.appendChild(mkImg('forest','[ a floresta guarda seus segredos ]','ELA ENTROU — NÃO SAIU',0.06));
+  c.innerHTML+=`<div class="phase-text sm">O que os registros dizem sobre █████?<br>Três palavras. A frase mais simples da investigação.</div>
+  `;
+});
+
+ph('O CADERNO DELA','vinte e tres sul',c=>{
+  // coordinates in words
+  c.innerHTML+=`<div class="phase-text">As coordenadas foram encontradas no caderno dela.<br>Escritas em palavras para ninguém entender.</div>
+  <div class="sep"></div>
+  <div class="cipher" style="text-align:left;font-size:11px;line-height:2.5;color:#886655;">
+    TWENTY THREE DEGREES SOUTH<br>
+    QUARENTA E SEIS GRAUS OESTE
+  </div>
+  <div class="phase-text sm">Traduza apenas a latitude para português.<br>Três palavras. Sem "graus".</div>
+  `;
+  c.appendChild(mkImg('old_paper','[ -23.5505°S -46.6333°W ]','',0.07));
+});
+
+ph('PÁGINA TREZE DO DIÁRIO','os mortos falam',c=>{const enc=vigenere('OS MORTOS FALAM','IRENE').replace(/ /g,'·');c.innerHTML+=`<div class="phase-text">Encontrado no diário &#8212; página 13.<br>Uma cifra que os investigadores não reconheceram.</div><div class="sep"></div><div class="cipher" style="color:#997766;letter-spacing:4px;">${enc}</div>`;c.appendChild(mkImg('old_paper','','',0.07));});
+
+ph('A VIZINHA NÃO DORMIA','nao entre na sala',c=>{
+  c.innerHTML+=`<div class="phase-text">A vizinha disse que ouviu vozes.<br>Às 03:<br>██████ a mesma frase.</div>
+  <div class="sep"></div>`;
+  c.innerHTML+=`<div class="cipher morse" style="font-size:11px;">-. .- --- / . -. - .-. . / -. .- / ... .- .-.. .-</div>`;const b=document.createElement('div');b.className='audio-btn';b.style.cssText='font-size:12px;padding:12px 20px;color:#774444;';
+  b.textContent='OUVIR O SUSSURRO';
+  b.onclick=()=>{drone(5,.6);setTimeout(()=>whisper('não entre na sala'),800);};
+  c.appendChild(b);
+  c.innerHTML+=`<div class="phase-text sm" style="margin-top:18px">Ouça com fone de ouvido.<br>Em silêncio. No escuro.</div><div class="audio-hint-txt">[ sem fones &#8212; aguarde 20s: N A O E N T R E N A S A L A ]</div>`;
+  c.appendChild(mkImg('window','[ a luz ainda acende sozinha ]','',0.06));
+});
+
+ph('O DOCUMENTO NEGADO','treze mortes',c=>{const enc=toHex('13 MORTES');c.innerHTML+=`<div class="phase-text">O relatório final foi encontrado criptografado.<br>O governo negou sua existência.</div><div class="sep"></div><div class="cipher" style="color:#886633;letter-spacing:5px;">31 33 20 4D 4F 52 54 45 53</div>`;c.appendChild(mkImg('blood','','',0.06));});
+
+ph('TUDO AO CONTRÁRIO','o espelho mente',c=>{c.innerHTML+=`<div class="phase-text">Duas transformações. Nenhuma é simples sozinha.</div><div class="sep"></div><div class="cipher mirror sm" style="color:#997766;">VGMVN LSOVKHV L</div>`;c.appendChild(mkImg('mirror','','',0.06));});
+
+ph('A DÉCIMA QUARTA HORA','ela esta aqui',c=>{
+  c.innerHTML+=`<div class="phase-text">Os pesquisadores gravaram o quarto vazio por 72 horas.<br>Nas primeiras 13 horas: silêncio.<br>Na 14ª hora:</div>
+  <div class="sep"></div><div class="cipher morse" style="font-size:11px;">. .-.. .- / . ... - .- / .- --.- ..- ..</div>`;const b=document.createElement('div');b.className='audio-btn';b.style.cssText='font-size:13px;padding:14px 24px;';
+  b.textContent='REPRODUZIR GRAVAÇÃO — HORA 14';
+  b.onclick=()=>{
+    drone(8,.15);
+    setTimeout(()=>whisper('ela está aqui'),2000);
+    setTimeout(()=>playMorse('ELA ESTA AQUI',3.0),4000);
+  };
+  c.appendChild(b);
+  c.innerHTML+=`<div class="phase-text sm" style="margin-top:18px">Três palavras. O que foi captado?</div><div class="audio-hint-txt">[ sem fones &#8212; aguarde 20s: E L A E S T A A Q U I ]</div>`;
+  c.appendChild(mkImg('shadow','[ a sombra que não deveria estar lá ]','',0.05));
+});
+
+ph('TRÊS CAMADAS DE MENTIRA','no subsolo dorme',c=>{const s3=Caesar(Caesar(Caesar('NO SUBSOLO DORME',5),8),3);c.innerHTML+=`<div class="phase-text">Três deslocamentos aplicados em sequência.</div><div class="sep"></div><div class="cipher" style="color:#997755;">${s3}</div>`;});
+
+ph('A MENSAGEM NO JORNAL','projeto esta vivo',c=>{
+  c.innerHTML+=`<div class="phase-text">Uma mensagem foi enviada ao jornal local.<br>A polícia não entendeu.<br>Nós entendemos.<br>
+  <span class="phase-text sm">Primeira letra de cada palavra de cada linha.</span></div>
+  <div class="sep"></div>
+  <div class="cipher" style="text-align:left;font-size:11px;line-height:2.6;color:#886655;">
+    <b style="color:#cc6633">P</b>artimos rumo ao objetivo jamez enquanto tenho observado<br>
+    <b style="color:#cc6633">R</b>elatos errados são tão acumulados verdadeiros e<br>
+    <b style="color:#cc6633">O</b> quê jaz em vinte oceanos<br>
+    <b style="color:#cc6633">J</b>amais escuto tá<br>
+    <b style="color:#cc6633">E</b>la traz a<br>
+    <b style="color:#cc6633">T</b>udo ocorre<br>
+    <b style="color:#cc6633">O</b> fato irá cair a<br>
+    <b style="color:#cc6633">E</b>strutura sobre tá a<br>
+    <b style="color:#cc6633">S</b>ão todos algozes<br>
+    <b style="color:#cc6633">T</b>udo a<br>
+    <b style="color:#cc6633">A</b> voz<br>
+    <b style="color:#cc6633">V</b>ida<br>
+    <b style="color:#cc6633">I</b>gual<br>
+    <b style="color:#cc6644">V</b>em<br>
+    <b style="color:#cc6644">O</b>uvir
+  </div>
+  `;
+});
+
+ph('OS PULSOS FORA DE ORDEM','o fim esta perto',c=>{
+  const enc=toBin('O FIM ESTA PERTO').split(' ').reverse().join(' ');c.innerHTML+=`<div class="phase-text">Os bytes foram embaralhados.<br>A mensagem persiste.</div><div class="sep"></div><div class="cipher bin sm">${enc}</div>`;c.appendChild(mkImg('clock','[ o tempo está acabando ]','',0.06));
+});
+
+ph('ESCRITO COM OS DEDOS','irene era sujeito 13',c=>{c.innerHTML+=`<div class="phase-text">Gravado nas paredes do porão com os dedos.<br>Em algo vermelho. Cada letra virou um número.</div><div class="sep"></div><div class="cipher" style="color:#886644;letter-spacing:2px;font-size:10px;">[9][18][5][14][5] [5][18][1] [19][21][10][5][9][20][15] [1][3]</div>`;c.appendChild(mkImg('blood','','',0.06));});
+
+ph('O ARQUIVO CORROMPIDO','o portal foi aberto',c=>{
+  // Give partial binary, rest is blank
+  const full=toBin('O PORTAL FOI ABERTO');
+  const parts=full.split(' ');
+  const partial=parts.map((b,i)=>i%3===1?'????????':b).join(' ');
+  c.innerHTML+=`<div class="phase-text">O arquivo estava corrompido.<br>Alguns bytes foram perdidos.<br>Mas a mensagem pode ser recuperada.</div>
+  <div class="sep"></div>
+  <div class="cipher bin sm" style="font-size:10px;">${partial}</div>
+  <div class="phase-text sm">Os grupos marcados com ????'s estão corrompidos.<br>Mas as palavras restantes revelam a frase.</div>
+  `;
+});
+
+ph('DO OUTRO LADO','a chave e o abismo',c=>{const enc=reverseStr(toMorse('A CHAVE E O ABISMO'));c.innerHTML+=`<div class="phase-text">O sinal chegou ao contrário.<br>Como se viesse do outro lado.</div><div class="sep"></div><div class="cipher morse sm" style="font-size:11px;">${enc}</div>`;const b=document.createElement('div');b.className='audio-btn';b.textContent='REPRODUZIR';b.onclick=()=>{drone(5,0.6);setTimeout(()=>playMorse(reverseStr('A CHAVE E O ABISMO'),3),1200);};c.appendChild(b);c.innerHTML+=`<div class="audio-hint-txt">[ sem fones &#8212; aguarde: A C H A V E E O A B I S M O ]</div>`;});
+
+ph('O NOME DO MÉDICO','doutor rafael melo',c=>{const enc=Caesar(atbash('DOUTOR RAFAEL MELO'),7);c.innerHTML+=`<div class="phase-text">Ele assinou o último relatório.<br>Seu nome foi apagado de todos os registros.</div><div class="sep"></div><div class="cipher" style="color:#997755;">${enc}</div>`;c.appendChild(mkImg('old_paper','','',0.06));});
+
+ph('A DATA OCULTA','quatorze de outubro',c=>{c.innerHTML+=`<div class="phase-text">Uma data foi escondida no último arquivo.<br>O dia após o desaparecimento.</div><div class="sep"></div><div class="cipher bin">00110001 00110100 00101111 00110001 00110000</div>`;c.appendChild(mkImg('clock','','',0.07));});
+
+ph('A GRAVAÇÃO PROIBIDA','nos estamos aqui',c=>{
+  c.innerHTML+=`<div class="phase-text">A gravação mais perturbadora do arquivo.<br>Voz masculina. Desconhecida.<br>Repetindo a mesma frase.</div>
+  <div class="sep"></div>`;
+  c.innerHTML+=`<div class="cipher morse" style="font-size:11px;">-. --- ... / . ... - .- -- --- ... / .- --.- ..- ..</div>`;const b=document.createElement('div');b.className='audio-btn';b.style.cssText='font-size:13px;padding:14px 24px;color:#886644;';
+  b.textContent='REPRODUZIR VOZ DO ARQUIVO';
+  b.onclick=()=>{
+    drone(10,.8);
+    setTimeout(()=>whisper('nós estamos aqui'),1000);
+    setTimeout(()=>whisper('nós estamos aqui'),4000);
+    setTimeout(()=>playMorse('NOS ESTAMOS AQUI',3.0),7000);
+  };
+  c.appendChild(b);
+  c.innerHTML+=`<div class="phase-text sm" style="margin-top:18px">Três palavras. O que a voz diz?</div><div class="audio-hint-txt">[ sem fones &#8212; aguarde 20s: N O S E S T A M O S A Q U I ]</div>`;
+  c.appendChild(mkImg('stairs','[ as escadas descem para onde não há fundo ]','',0.05));
+});
+
+ph('DUAS VEZES ENTERRADO','o rito foi cumprido',c=>{const s2=toB64(toB64('O RITO FOI CUMPRIDO'));c.innerHTML+=`<div class="phase-text">Codificado duas vezes.<br>Como se uma camada não bastasse.</div><div class="sep"></div><div class="cipher" style="color:#887744;font-size:11px;">${s2}</div>`;});
+
+ph('A PÁGINA CENSURADA','sujeitos nao resistiram',c=>{const enc=vigenere('SUJEITOS NAO RESISTIRAM','MELO').replace(/ /g,'·');c.innerHTML+=`<div class="phase-text">Página 29 do relatório. Censurada.<br>Mas a cifra permaneceu.</div><div class="sep"></div><div class="cipher" style="color:#997766;letter-spacing:3px;">${enc}</div>`;c.appendChild(mkImg('old_paper','','',0.06));});
+
+ph('TRINTA METROS ABAIXO','trinta metros abaixo',c=>{c.innerHTML+=`<div class="phase-text">O porão se estendia por 30 metros abaixo do solo.<br>O que havia lá nunca foi revelado.</div><div class="sep"></div><div class="cipher" style="color:#886633;font-size:11px;">54 52 49 4E 54 41 20 4D 45 54 52 4F 53 20 41 42 41 49 58 4F</div>`;c.appendChild(mkImg('dark_hall','','',0.05));});
+
+// ── BLOCO 3: PROFUNDO (50-89) ────────────────────
+ph('ELE JÁ SABE QUE VOCÊ ESTÁ AQUI','o abismo te observa agora',c=>{
+  c.innerHTML+=`<div class="block-header">— PROFUNDO —</div>
+  <div class="phase-text">████ olha para o abismo por tempo suficiente...<br>descobre que o abismo tem olhos.<br>E os olhos estão te olhando agora.</div>
+  <div class="sep"></div>`;
+  c.appendChild(mkImg('eye','[ ELE VÊ VOCÊ ]','ELE VÊ VOCÊ',0.04));
+  c.innerHTML+=`<div class="phase-text sm">Cinco palavras. O que o abismo faz?</div>
+  `;
+
+c.innerHTML+=`<div class="cipher" style="color:#997755;font-size:11px;">WSBNTEVVQVkgVEkgWUxVSVZSTSBNR1lWTQ==</div>`;});
+
+ph('O QUADRADO NO CHÃO','o quadrado sabe tudo',c=>{c.innerHTML+=`<div class="phase-text">O Quadrado foi encontrado gravado no chão do porão.<br>Cada letra virou um par de números.</div><div class="sep"></div><div class="cipher" style="color:#886644;letter-spacing:3px;font-size:12px;">34 / 41 45 11 14 42 11 14 34 / 43 11 12 15 / 44 45 14 34</div>`;});
+
+ph('NÃO É COINCIDÊNCIA','treze nao e acidente',c=>{const s2=reverseStr(rot13('TREZE NAO E ACIDENTE'));c.innerHTML+=`<div class="phase-text">13 sujeitos. 13 passos. 13 de outubro.<br>Não é coincidência.</div><div class="sep"></div><div class="cipher morse sm" style="font-size:9px;">${toMorse(s2)}</div>`;const b=document.createElement('div');b.className='audio-btn';b.textContent='SINAL';b.onclick=()=>playMorse(s2,3.0);c.appendChild(b);c.innerHTML+=``;});
+
+// Add more phases to reach 150...
+// For brevity, generating procedurally with varied techniques
+
+const extraPhases = [
+  {t:'A VOZ DA CÂMARA',a:'ela chamava pelo nome',cipher:()=>toB64(rot13('ELA CHAMAVA PELO NOME'))},
+  {t:'SOMBRAS NA PAREDE',a:'as sombras tem memoria',cipher:()=>vigenere('AS SOMBRAS TEM MEMORIA','LIMIAR').replace(/ /g,'·')},
+  {t:'O DIÁRIO DE RAFAEL',a:'nao abra o arquivo 13',cipher:()=>Caesar(atbash('NAO ABRA O ARQUIVO 13'),9)},
+  {t:'A FREQUÊNCIA PROIBIDA',a:'treze hertz mata a mente',cipher:()=>toMorse('TREZE HERTZ MATA A MENTE')},
+  {t:'O SÉTIMO ANDAR',a:'o sétimo nao existe',cipher:()=>reverseStr(Caesar('O SETIMO NAO EXISTE',4))},
+  {t:'A ÚLTIMA GRAVAÇÃO',a:'grave isso nao me esqueça',cipher:()=>toBin('GRAVE ISSO NAO ME ESQUECA')},
+  {t:'O PAPEL COM SANGUE',a:'o manuscrito foi destruido',cipher:()=>atbash(Caesar('O MANUSCRITO FOI DESTRUIDO',6))},
+  {t:'A TESTEMUNHA 2',a:'eu vi o portal abrir',cipher:()=>vigenere('EU VI O PORTAL ABRIR','SEPULCRO').replace(/ /g,'·')},
+  {t:'NÍVEL DE ALERTA MÁXIMO',a:'codigo vermelho esta ativo',cipher:()=>Caesar(toBin('CODIGO').split(' ').map(b=>parseInt(b,2).toString(16).padStart(2,'0')).join(' '),0)},
+  {t:'O QUE ACONTECEU',a:'ninguem sobreviveu ao ritual',cipher:()=>reverseStr(atbash(rot13('NINGUEM SOBREVIVEU AO RITUAL')))},
+  {t:'A ORDEM DOS EVENTOS',a:'primeiro a luz depois o escuro',cipher:()=>toMorse('PRIMEIRO A LUZ DEPOIS O ESCURO')},
+  {t:'CORROMPIDO. MAS PRESENTE.',a:'o arquivo corrompeu a verdade',cipher:()=>Caesar(vigenere('O ARQUIVO CORROMPEU A VERDADE','MELO').replace(/ /g,'·'),3)},
+  {t:'O NÚMERO DA BESTA',a:'seiscentos sessenta e seis',cipher:()=>toBin('666')},
+  {t:'A ÚLTIMA TESTEMUNHA',a:'ela viu o doutor na sala',cipher:()=>atbash(reverseStr('ELA VIU O DOUTOR NA SALA'))},
+  {t:'O QUE O RÁDIO CAPTOU',a:'a frequencia apaga a memoria',cipher:()=>vigenere('A FREQUENCIA APAGA A MEMORIA','RAFAEL').replace(/ /g,'·')},
+  {t:'A ORDEM QUE VEIO DE CIMA',a:'o protocolo nao pode parar',cipher:()=>Caesar(rot13('O PROTOCOLO NAO PODE PARAR'),7)},
+  {t:'O ARQUIVO MAIS PROFUNDO',a:'a verdade esta no subsolo',cipher:()=>toB64(vigenere('A VERDADE ESTA NO SUBSOLO','IRENE').replace(/ /g,'.'))},
+  {t:'O QUE NAO TEM NOME',a:'projeto limiar nunca acabou',cipher:()=>reverseStr(toBin('PROJETO LIMIAR'))},
+  {t:'O PESO DO SILÊNCIO',a:'o silencio tem um peso',cipher:()=>atbash(Caesar(rot13('O SILENCIO TEM UM PESO'),5))},
+  {t:'A HERANÇA',a:'irene deixou tudo para nos',cipher:()=>Caesar(vigenere('IRENE DEIXOU TUDO PARA NOS','LIMIAR').replace(/ /g,'·'),13)},
+];
+
+// Add 20 extra phases to reach bloco 3 (phases 53-72)
+extraPhases.forEach((ep,i)=>{
+  ph(ep.t, ep.a, c=>{
+    const enc=ep.cipher();
+    c.innerHTML+=`<div class="phase-text">O arquivo ${53+i} do ███████ ██████.</div>
+    <div class="sep"></div>
+    <div class="cipher ${enc.length>100?'bin sm':''}" style="color:#997755;font-size:${enc.length>80?'11':'13'}px;">${enc}</div>
+    
+    `;
+    const imgKeys=Object.keys(IMGS);
+    {const tm={'limiar':'door','sombra':'shadow','vazio':'fog','pulso':'clock','espelho':'mirror','sangue':'blood','cinzas':'cemetery','trevas':'dark_hall','ossos':'skull','ritual':'ritual','portal':'door','mortos':'cemetery','abismo':'water','arquivo':'old_paper','alma':'fog','morte':'cemetery','escuro':'dark_hall','irene':'shadow','sujeito':'eye','projeto':'door','cicatriz':'blood','camara':'dark_hall','voz':'fog','memoria':'mirror','doutor':'old_paper','praga':'roots'};const wds=ep.a.split(' ');let k=imgKeys[(53+i)%imgKeys.length];for(const w of wds){if(tm[w]){k=tm[w];break;}}c.appendChild(mkImg(k,'','',0.05));}
+  });
+});
+
+// ── BLOCO 4: ABISMO (73-129) ─────────────────────
+const abyssPhrases=[
+  ['O QUE NAO PODE PARAR','o projeto nunca terminou'],
+  ['A VIGÍLIA','treze velas treze almas'],
+  ['O MAPA DO PORÃO','o mapa leva ao nucleo'],
+  ['FREQUÊNCIA ALFA','alfa e o começo do fim'],
+  ['A ÚLTIMA ENTRADA','irene escreveu ate o fim'],
+  ['O PESO DAS SOMBRAS','as sombras pesam mais que ossos'],
+  ['O SINAL MAIS ESCURO','codigo negro foi ativado'],
+  ['O QUARTO SEM SAÍDA','a camara guarda todos os segredos'],
+  ['SUJEITO ZERO','sujeito zero era o doutor'],
+  ['O FIM TEM UM NOME','omega significa o fim de tudo'],
+  ['A VOZ DO ARQUIVO','a voz diz para nao entrar'],
+  ['TREZE PASSOS','treze passos ate o portal'],
+  ['O QUE ELES SABIAM','eles sabiam de tudo desde sempre'],
+  ['A DATA DO FIM','vinte e um de dezembro de dois mil'],
+  ['O NOME VERDADEIRO','o projeto se chama cicatriz'],
+  ['O QUE NUNCA FOI ABERTO','arquivo zeta nunca foi aberto'],
+  ['A ÚLTIMA VOZ','a ultima voz era de irene'],
+  ['O CÓDIGO DO SILÊNCIO','o silencio e o mais alto grito'],
+  ['SUJEITO 14','sujeito quatorze era a proxima'],
+  ['O FIM DE TUDO','o fim comecou em oitenta e nove'],
+  ['O ÚLTIMO DE TODOS','o protocolo treze foi o ultimo'],
+  ['A CICATRIZ','a cicatriz nao fecha nunca mais'],
+  ['FREQUÊNCIA OMEGA','frequencia omega abre o limiar'],
+  ['O NOME QUE NAO SE DIZ','o nome proibido e projeto cicatriz'],
+  ['ARQUIVOS DESTRUÍDOS','todos os arquivos foram queimados'],
+  ['A ÚLTIMA PALAVRA','a ultima palavra foi socorro'],
+  ['O SUBSOLO VIVO','o subsolo esta vivo e consciente'],
+  ['NÍVEL MÁXIMO','nivel maximo de contaminacao mental'],
+  ['A PRAGA','a praga comecou com o ritual'],
+  ['O CUSTO','o custo foi quatorze vidas humanas'],
+  ['O ÚLTIMO RECURSO','codigo sangue foi o ultimo recurso'],
+  ['A ORDEM','a ordem veio de cima para baixo'],
+  ['O SACRIFÍCIO','eu nao quero mais jogar'],
+  ['O NOME LATINO DO MEDO','tredecim e o numero latin de treze'],
+  ['O PORTAL PERMANENTE','o portal permanece aberto para sempre'],
+  ['A HERANÇA DE IRENE','irene deixou o diario no cemiterio'],
+  ['FREQUÊNCIA DA MORTE','a frequencia da morte e treze hertz'],
+  ['O DOUTOR SABIA','rafael melo sabia desde o inicio'],
+  ['A CÂMARA DOS ECOS','a camara ecoa vozes de mil anos'],
+  ['O PROJETO CONTINUA','o projeto limiar ainda esta ativo'],
+  ['ARQUIVO NEGRO','o arquivo negro tem trinta paginas'],
+  ['A CHAVE FINAL','a chave final esta no diario dela'],
+  ['FUGA. AGORA.','protocolo vermelho significa fuga imediata'],
+  ['O ÚLTIMO SUJEITO','o ultimo sujeito foi o numero zero'],
+  ['A TRANSMISSÃO FINAL','a transmissao final durou treze minutos'],
+  ['NÍVEL ZERO','nivel zero e onde tudo comecou'],
+  ['O MAPA DA MENTE','o mapa mostra o caminho para o fim'],
+  ['FREQUÊNCIA 1313','frequencia mil trezentos e treze hertz'],
+  ['A ÚLTIMA CHANCE','a ultima chance de sair foi perdida'],
+  ['O DESPERTAR','o despertar do sujeito treze falhou'],
+  ['MEMÓRIA APAGADA','a memoria de todos foi apagada'],
+  ['O QUE SÓ ELA SABIA','a senha final era o nome dela'],
+  ['O QUE VEM DEPOIS DO FIM','projeto fenix e o que vem depois'],
+  ['A RAIZ DE TUDO','o codigo original foi destruido em 89'],
+  ['A MISSÃO','a missao era conter o que saiu'],
+  ['O QUE NAO EXISTIU','arquivo zero zero nunca existiu'],
+  ['O PORTAL FECHA','o portal fecha quando o ultimo entra'],
+];
+
+abyssPhrases.forEach((ap,i)=>{
+  const ciphers=[
+    t=>Caesar(vigenere(t,'IRENE').replace(/ /g,'·'),7),
+    t=>reverseStr(atbash(rot13(t))),
+    t=>toB64(vigenere(t,'MELO').replace(/ /g,'·')),
+    t=>toMorse(Caesar(t,11)),
+    t=>atbash(Caesar(reverseStr(t),5)),
+    t=>Caesar(reverseStr(toBin(t.split(' ')[0])),0).replace(/ /g,''),
+  ];
+  const hintArr=['','','','','',''];
+  const ci=i%ciphers.length;
+  const enc=ciphers[ci](ap[1].toUpperCase());
+  const imgKeys=Object.keys(IMGS);
+  ph(ap[0],ap[1],c=>{
+    if(i===32){
+      c.innerHTML=`<div class="cipher" style="color:#997755;letter-spacing:3px;font-size:12px;margin-top:50px;word-break:break-all;text-align:center;">VXQZJKMBPHRWSDLYNTFGKZQVXMBJRWPNLZKVXQZJKMBPHRWSDLYNTFGKZQVXMBJRWPNLZKVXQZJKM</div>`;
+    } else {
+      c.innerHTML+=`<div class="phase-text">███████ ${73+i}.</div>
+    <div class="sep"></div>
+    <div class="cipher ${enc.length>100?'bin sm':''}" style="font-size:${enc.length>80?'10':'12'}px;color:#997755;">${enc}</div>
+    `;
+    }
+    if(i!==27){
+      const tm={'limiar':'door','sombra':'shadow','vazio':'fog','pulso':'clock','espelho':'mirror','sangue':'blood','cinzas':'cemetery','trevas':'dark_hall','ossos':'skull','ritual':'ritual','portal':'door','mortos':'cemetery','abismo':'water','arquivo':'old_paper','alma':'fog','morte':'cemetery','escuro':'dark_hall','irene':'shadow','sujeito':'eye','projeto':'door','cicatriz':'blood','camara':'dark_hall','voz':'fog','memoria':'mirror','doutor':'old_paper','praga':'roots'};const wds=ap[1].split(' ');let k=imgKeys[(73+i)%imgKeys.length];for(const w of wds){if(tm[w]){k=tm[w];break;}}c.appendChild(mkImg(k,'','',0.04));
+      if(i%7===0){const b=document.createElement('div');b.className='audio-btn';b.textContent='ÁUDIO DO ARQUIVO';b.onclick=()=>{drone(6,.15);setTimeout(()=>whisper(ap[1]),2000);};c.appendChild(b);}
+    }
+  });
+});
+
+// ── BLOCO 5: LIMIAR (130-149) ────────────────────
+const finalPhases=[
+  ['O DESPERTAR FINAL','o limiar esta aberto nao entre'],
+  ['A SENHA DO DOUTOR','rafael melo nao sobreviveu ao projeto'],
+  ['ARQUIVO MÁXIMO','o arquivo maximo tem trinta e tres paginas'],
+  ['O ÚLTIMO RITUAL','o ultimo ritual aconteceu em oitenta e nove'],
+  ['A VOZ DE IRENE','irene disse para destruir tudo'],
+  ['NÍVEL OMEGA','nivel omega significa que ele escapou'],
+  ['O QUE NAO PODE PARAR','o protocolo final nunca foi executado'],
+  ['A CICATRIZ FINAL','a cicatriz do projeto nao fechara nunca'],
+  ['FREQUÊNCIA ÚLTIMA','a ultima frequencia abriu o portal final'],
+  ['O CUSTO REAL','o custo real foram catorze vidas perdidas'],
+  ['A ORDEM SUPREMA','a ordem suprema veio do nivel mais alto'],
+  ['PROJETO CONCLUÍDO','o projeto foi concluido mas nao encerrado'],
+  ['O NOME PROIBIDO','o nome proibido e irene rafael limiar'],
+  ['A ÚLTIMA TRANSMISSÃO','a transmissao foi interrompida por ele mesmo'],
+  ['ARQUIVO FINAL','o arquivo final esta aqui dentro de voce'],
+  ['APENAS O SILÊNCIO','o que resta depois do limiar e o nada'],
+  ['A SENHA ÚLTIMA','a senha ultima e o nome do sujeito zero'],
+  ['O FIM DO PROJETO','o projeto limiar foi voce o tempo todo'],
+  ['ÚLTIMA FASE','esta e a penultima fase do projeto'],
+  ['PROJETO LIMIAR','voce era o sujeito treze o tempo todo'],
+];
+
+finalPhases.forEach((fp,i)=>{
+  const hardCiphers=[
+    t=>Caesar(reverseStr(atbash(vigenere(t,'LIMIAR').replace(/ /g,'·'))),13),
+    t=>toB64(reverseStr(Caesar(atbash(t),7))),
+    t=>reverseStr(vigenere(rot13(t),'IRENE').replace(/ /g,'·')),
+    t=>toMorse(Caesar(reverseStr(atbash(t)),11)),
+  ];
+  const hardHints=['','','',''];
+  const ci=i%4;
+  const enc=hardCiphers[ci](fp[1].toUpperCase());
+  const imgKeys=Object.keys(IMGS);
+  ph(fp[0],fp[1],c=>{
+    c.innerHTML+=`<div class="block-header">— LIMIAR —</div>
+    <div class="phase-text">███████ final ${130+i}.</div>
+    <div class="sep"></div>
+    <div class="cipher ${enc.length>120?'bin sm':''}" style="font-size:${enc.length>100?'9':'11'}px;color:#997755;">${enc}</div>
+    
+    `;
+    {const tm={'limiar':'door','sombra':'shadow','vazio':'fog','pulso':'clock','espelho':'mirror','sangue':'blood','cinzas':'cemetery','trevas':'dark_hall','ossos':'skull','ritual':'ritual','portal':'door','mortos':'cemetery','abismo':'water','arquivo':'old_paper','alma':'fog','morte':'cemetery','escuro':'dark_hall','irene':'shadow','sujeito':'eye','projeto':'door','cicatriz':'blood','camara':'dark_hall','voz':'fog','memoria':'mirror','doutor':'old_paper','praga':'roots'};const wds=fp[1].split(' ');let k=imgKeys[(130+i)%imgKeys.length];for(const w of wds){if(tm[w]){k=tm[w];break;}}c.appendChild(mkImg(k,'','',0.03));}
+    const b=document.createElement('div');b.className='audio-btn';b.textContent='ÁUDIO FINAL';
+    b.onclick=()=>{
+      drone(10,.8);
+      setTimeout(()=>whisper(fp[1].split(' ').slice(0,3).join(' ')),2500);
+      setTimeout(()=>playMorse(fp[1].toUpperCase().split(' ').slice(0,3).join(' '),.5),6000);
+    };
+    c.appendChild(b);
+  });
+});
+
+
+// ── FASES EXTRAS PARA COMPLETAR 150 ─────────────
+const extra11=[
+  ['AINDA ESTÁ VIVO','o projeto sobrevive em nos'],
+  ['A MEMÓRIA DE IRENE','a memoria de irene foi apagada'],
+  ['FREQUÊNCIA DA ALMA','a alma ressoa em treze hertz'],
+  ['O DIÁRIO PERDIDO','o diario foi encontrado no cemiterio'],
+  ['CÓDIGO ULTIMO','o codigo ultimo nao tem chave'],
+  ['A SÉTIMA CÂMARA','a setima camara guarda o segredo maior'],
+  ['O ERRO DO DOUTOR','rafael errou ao abrir o portal'],
+  ['A LUZ NO FIM','a luz no fim nao e saida'],
+  ['SUJEITO FINAL','sujeito final era quem menos esperava'],
+  ['APENAS O SILÊNCIO','o que resta e apenas o silencio'],
+  ['O FIM QUE NAO É FIM','o projeto foi encerrado mas vive em nos'],
+];
+extra11.forEach((ep,i)=>{
+  const hardFn=[
+    t=>Caesar(vigenere(t,'LIMIAR').replace(/ /g,'.'),11),
+    t=>reverseStr(atbash(Caesar(t,7))),
+    t=>toB64(rot13(atbash(t))),
+    t=>toMorse(Caesar(reverseStr(t),9)),
+  ];
+  const hints=['','','','','',''];
+  const ci=i%4;
+  const enc=hardFn[ci](ep[1].toUpperCase());
+  const imgKeys=Object.keys(IMGS);
+  ph(ep[0],ep[1],c=>{
+    c.innerHTML+=`<div class="block-header">— FASE EXTRA —</div>
+    <div class="phase-text">███████ extra ${139+i+1}.</div>
+    <div class="sep"></div>
+    <div class="cipher sm" style="font-size:11px;color:#997755;">${enc}</div>
+    
+    `;
+    c.appendChild(mkImg(imgKeys[(139+i)%imgKeys.length],'','',0.04));
+  });
+});
+
+// ══════════════════════════════════════════════════
+// ROUTING
+// ══════════════════════════════════════════════════
+let tries=0;
+const WRONG_MSGS=[
+  '> INCORRETO. ELE ESTÁ OBSERVANDO VOCÊ FALHAR.',
+  '> ERRADO. AS PAREDES OUVEM.',
+  '> NÃO. PENSE MAIS FUNDO.',
+  '> NEGATIVO. O QUE VOCÊ NÃO VÊ?',
+  '> FALSO. O ABISMO ANOTA CADA ERRO.',
+  '> TENTATIVA INVÁLIDA. IRENE NÃO ERROU.',
+  '> INCORRETO. ${tries} ERROS ATÉ AGORA.',
+  '> A RESPOSTA ESTÁ ESCONDIDA. PROCURE MAIS.',
+];
+
+function getPhaseIdx(){
+  let raw=window.location.hash.replace(/^#+/,'');
+  try{raw=decodeURIComponent(raw);}catch(e){}
+  const hash=raw.toLowerCase().trim().replace(/-/g,' ');
+  if(!hash) return 0;
+  for(let i=0;i<PH.length;i++) if(hash===PH[i].answer) return i+1;
+  return null;
+}
+
+function renderPhase(idx){
+  tries=0;
+  const cont=document.getElementById('phaseContent');
+  cont.innerHTML='';
+  spawnDrips(4+Math.floor(Math.random()*6));
+  if(idx===null){renderWrong();return;}
+  if(idx>=PH.length){renderVictory();return;}
+  renderPhaseData(idx);
+  const pct=Math.round((idx/PH.length)*100);
+  document.getElementById('progress').style.width=pct+'%';
+  window.scrollTo(0,0);
+}
+
+function renderPhaseData(idx){
+  const p=PH[idx];
+  const cont=document.getElementById('phaseContent');
+  const div=document.createElement('div');
+  div.className='phase';
+  const block=idx<20?'TUTORIAL':idx<50?'INICIADO':idx<90?'PROFUNDO':idx<130?'ABISMO':'LIMIAR';
+  div.innerHTML=`<div class="phase-num">${block} &nbsp;·&nbsp; FASE ${String(idx).padStart(3,'0')} / ${String(PH.length-1).padStart(3,'0')}</div>
+    <div class="phase-title${idx>=130?' big':''}">${p.title}</div>`;
+  p.build(div);
+  div.innerHTML+=`<div class="answer-wrap">
+    <input class="answer-input" id="ai" type="text" placeholder="responda aqui" autocomplete="off" spellcheck="false"/>
+    <div class="answer-hint" id="ah">&gt; AGUARDANDO</div>
+    <div class="tries" id="triesEl"></div>
+  </div>`;
+  cont.appendChild(div);
+  const inp=document.getElementById('ai');
+  const hint=document.getElementById('ah');
+  inp.focus();
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter') checkAns(inp.value.trim().toLowerCase(),p.answer,hint,inp);
+  });
+  inp.addEventListener('input',()=>{hint.textContent='> AGUARDANDO';hint.className='answer-hint';});
+}
+
+function checkAns(val,correct,hintEl,inputEl){
+  // Normalize: remove accents for comparison
+  const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  if(norm(val)===norm(correct)){
+    inputEl.classList.add('ok');
+    hintEl.className='answer-hint win';
+    hintEl.textContent='> CORRETO. AVANÇANDO...';
+    correctSound();
+    screenFlash('#003300');
+    setTimeout(()=>{window.location.hash='#'+correct.toLowerCase();},900);
+  } else {
+    tries++;
+    inputEl.classList.remove('wrong');
+    void inputEl.offsetWidth;
+    inputEl.classList.add('wrong');
+    hintEl.className='answer-hint err';
+    hintEl.textContent=WRONG_MSGS[Math.floor(Math.random()*WRONG_MSGS.length)].replace('${tries}',tries);
+    document.getElementById('triesEl').textContent=`tentativas: ${tries}`;
+    wrongSound();
+    screenFlash('#220000');
+    if(tries%3===0) whisper('errado');
+    inputEl.value='';
+  }
+}
+
+function renderWrong(){
+  document.getElementById('phaseContent').innerHTML=`
+  <div class="phase wrong-screen">
+    <div class="phase-num">E R R O</div>
+    <div class="phase-title" style="color:#771111;">CAMINHO ERRADO</div>
+    <div class="phase-text">████ não é a resposta.<br>████ não é a porta.<br>
+    <span class="phase-text sm">Volte e tente novamente.</span></div>
+    <div class="sep"></div>
+    <a class="back" href="#">&gt; RETORNAR AO INÍCIO</a>
+  </div>`;
+  wrongSound();screenFlash('#330000');
+}
+
+// renderVictory defined in admin section below
+
+
+// ── TRANSITIONS ──────────────────────────────────
+function transitionToPhase(hash,delay){
+  delay=delay||400;
+  const cur=document.querySelector('.phase');
+  if(cur)cur.style.cssText='animation:phaseOut 0.35s ease forwards;';
+  const ov=document.getElementById('transOverlay');
+  if(ov){ov.style.opacity='1';}
+  spawnDrips(8); beep(330,.12,.25,'sine');
+  setTimeout(()=>{
+    window.location.hash=hash;
+    try{localStorage.setItem('limiar_progress',hash.replace(/^#+/,''));}catch(e){}
+  try{localStorage.setItem('limiar_progress',hash);}catch(e){}
+    setTimeout(()=>{if(ov)ov.style.opacity='0';},300);
+  },delay);
+}
+
+function spawnConfetti(){
+  const wrap=document.getElementById('confettiWrap');
+  if(!wrap)return;
+  const cols=['#cc0000','#880000','#ff4444','#cc4422','#ff8800','#ffaa00','#fff3','#660000'];
+  for(let i=0;i<80;i++){
+    const d=document.createElement('div');
+    const dur=(2+Math.random()*3).toFixed(1);
+    const delay=(Math.random()*2).toFixed(1);
+    d.style.cssText='position:absolute;top:-10px;border-radius:2px;'+
+      'animation:confetti '+dur+'s ease-in '+delay+'s forwards;'+
+      'left:'+(Math.random()*100).toFixed(1)+'%;'+
+      'background:'+cols[Math.floor(Math.random()*cols.length)]+';'+
+      'width:'+(5+Math.random()*8).toFixed(0)+'px;'+
+      'height:'+(5+Math.random()*8).toFixed(0)+'px;';
+    wrap.appendChild(d);
+  }
+  setTimeout(()=>{if(wrap)wrap.innerHTML='';},6000);
+}
+
+function launchVictory(){
+  spawnConfetti();
+  drone(15,.8);
+  [523,659,784,1047,1319,1568].forEach((f,i)=>beep(f,.3+i*.1,.4,'sine',.5+i*.4));
+  setTimeout(()=>spawnConfetti(),2500);
+  setTimeout(()=>spawnConfetti(),5000);
+  setTimeout(()=>whisper('projeto concluido. voce era o sujeito treze.'),3500);
+}
+
+
+// ══════════════════════════════════════════════════
+// PROGRESS SAVE / RESTORE
+// ══════════════════════════════════════════════════
+const SAVE_KEY = 'limiar_progress_v1';
+
+function saveProgress(answer) {
+  try {
+    const data = {
+      hash: '#' + answer.toLowerCase().replace(/ /g,'-'),
+      answer: answer.toLowerCase(),
+      ts: Date.now()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch(e) {}
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function clearProgress() {
+  try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+}
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+window.addEventListener('hashchange',()=>{
+  const idx=getPhaseIdx();
+  renderPhase(idx);
+  // Save progress
+  try{
+    if(window.location.hash && window.location.hash.length>1)
+      localStorage.setItem('limiar_progress', window.location.hash);
+  }catch(e){}
+});
+window.addEventListener('DOMContentLoaded',()=>{
+  // Restore saved progress if no hash in URL
+  try{
+    const saved = localStorage.getItem('limiar_progress');
+    if(saved && !window.location.hash && saved.length > 1){
+      window.location.hash = saved;
+    }
+  }catch(e){}
+  renderPhase(getPhaseIdx());
+  // Konami easter egg
+  let kk=[];
+  const KK=[38,38,40,40,37,39,37,39,66,65];
+  document.addEventListener('keydown',e=>{
+    kk.push(e.keyCode);if(kk.length>10)kk.shift();
+    if(JSON.stringify(kk)===JSON.stringify(KK)){
+      screenFlash('#000033');
+      whisper('você encontrou o ovo. mas aqui ovos não têm presentes.');
+    }
+    if(e.key==='F12'||e.code==='F12') return true;
+  });
+  // Block right click
+  document.addEventListener('contextmenu',e=>{
+    e.preventDefault();
+    const h=document.getElementById('ah');
+    if(h){h.className='answer-hint err';h.textContent='> O MENU ESTÁ FECHADO. COMO TUDO AQUI.';}
+  });
+});
+
+// ══════════════════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════════════════
+const ADMIN_PWD = '22688712@';
+const ADMIN_KEY = 'limiar_admin_unlocked';
+let adminUnlocked = false;
+
+function adminCheckSaved(){
+  try{ if(sessionStorage.getItem(ADMIN_KEY)==='1') adminGrantAccess(true); }catch(e){}
+}
+
+function adminOpen(){
+  document.getElementById('adminOverlay').classList.add('open');
+  if(adminUnlocked){
+    document.getElementById('adminLogin').style.display='none';
+    document.getElementById('adminPanel').style.display='block';
+    adminBuildPhases();
+  } else {
+    setTimeout(()=>document.getElementById('adminPwd').focus(), 100);
+  }
+  // pwd enter key
+  document.getElementById('adminPwd').onkeydown = e=>{
+    if(e.key==='Enter') adminAuth();
+  };
+}
+
+function adminClose(){
+  document.getElementById('adminOverlay').classList.remove('open');
+  document.getElementById('adminPwd').value='';
+  document.getElementById('adminHint').textContent='> SENHA DO PROJETO';
+  document.getElementById('adminHint').className='admin-hint';
+}
+
+function adminAuth(){
+  const val = document.getElementById('adminPwd').value;
+  if(val === ADMIN_PWD){
+    adminGrantAccess(false);
+  } else {
+    const h = document.getElementById('adminHint');
+    h.className='admin-hint err';
+    h.textContent='> SENHA INCORRETA. ACESSO NEGADO.';
+    wrongSound();
+    screenFlash('#220000');
+    document.getElementById('adminPwd').value='';
+  }
+}
+
+function adminGrantAccess(silent){
+  adminUnlocked = true;
+  try{ sessionStorage.setItem(ADMIN_KEY,'1'); }catch(e){}
+  // Update button
+  const btn = document.getElementById('adminBtn');
+  btn.classList.add('unlocked');
+  btn.textContent = '⚙ ADMIN ●';
+  // Show panel
+  document.getElementById('adminLogin').style.display='none';
+  document.getElementById('adminPanel').style.display='block';
+  document.getElementById('adminSubtitle').textContent='ACESSO CONCEDIDO — BEM-VINDO, DOUTOR';
+  if(!silent){
+    const h=document.getElementById('adminHint');
+    h.className='admin-hint ok';
+    h.textContent='> ACESSO CONCEDIDO';
+    correctSound();
+    screenFlash('#002200');
+  }
+  adminBuildPhases();
+}
+
+function adminBuildPhases(){
+  const container = document.getElementById('adminBlocks');
+  container.innerHTML='';
+  const blocks=[
+    {label:'— TUTORIAL (0–19) —',range:[0,20]},
+    {label:'— INICIADO (20–49) —',range:[20,50]},
+    {label:'— PROFUNDO (50–89) —',range:[50,90]},
+    {label:'— ABISMO (90–129) —',range:[90,130]},
+    {label:'— LIMIAR (130–149) —',range:[130,150]},
+  ];
+  blocks.forEach(block=>{
+    const title=document.createElement('div');
+    title.className='admin-block-title';
+    title.textContent=block.label;
+    container.appendChild(title);
+    for(let i=block.range[0];i<block.range[1]&&i<PH.length;i++){
+      const p=PH[i];
+      const btn=document.createElement('div');
+      btn.className='admin-phase-btn';
+      btn.dataset.title=p.title.toLowerCase();
+      btn.dataset.answer=p.answer;
+      btn.dataset.idx=i;
+      btn.innerHTML=`<span class="pnum">FASE ${String(i).padStart(3,'0')}</span>
+        <span class="ptitle">${p.title}</span>
+        <span class="pans">> ${p.answer}</span>`;
+      btn.onclick=()=>adminGotoPhase(i, p.answer);
+      container.appendChild(btn);
+    }
+  });
+}
+
+function adminFilter(){
+  const q = document.getElementById('adminSearch').value.toLowerCase();
+  document.querySelectorAll('.admin-phase-btn').forEach(btn=>{
+    const matches = !q || btn.dataset.title.includes(q) || btn.dataset.answer.includes(q) || btn.dataset.idx.includes(q);
+    btn.style.display = matches ? '' : 'none';
+  });
+}
+
+function adminGotoPhase(idx, answer){
+  adminClose();
+  if(idx > 0) saveProgress(PH[idx-1].answer);
+  // Navigate directly to the phase
+  if(idx === 0){
+    window.location.hash = '';
+    renderPhase(0);
+  } else {
+    // Set hash to previous phase's answer so routing shows this phase
+    const savedHash2='#'+PH[idx-1].answer.replace(/ /g,'-');
+  window.location.hash=savedHash2;
+  try{localStorage.setItem('limiar_progress',savedHash2);}catch(e){}
+  try{localStorage.setItem('limiar_progress','#'+PH[idx-1].answer.replace(/ /g,'-'));}catch(e){}
+  }
+  // Force render after hash is set
+  setTimeout(()=>{
+    renderPhase(idx);
+    window.scrollTo(0,0);
+  }, 50);
+}
+
+// Check if victory was reached to show admin hint
+const _origRenderVictory = renderVictory;
+// Patch renderVictory to also show admin hint
+const _patchVictory = ()=>{
+  const cont = document.getElementById('phaseContent');
+  if(cont){
+    const hint = document.createElement('div');
+    hint.style.cssText='margin-top:32px;font-family:var(--mono);font-size:9px;color:#331111;letter-spacing:2px;text-align:center;';
+    hint.innerHTML='[ acesso admin desbloqueado — clique em ⚙ ADMIN no canto superior direito ]<br><span style="color:#1a0a0a">senha revelada nos arquivos finais: 22688712@</span>';
+    setTimeout(()=>{ const pc=document.getElementById('phaseContent'); if(pc) pc.appendChild(hint); },100);
+  }
+};
+
+// Override renderVictory to add hint
+function renderVictory(){
+  document.getElementById('phaseContent').innerHTML=`
+  <div class="phase" style="text-align:center;animation:phaseIn 1.2s ease forwards;">
+    <div style="font-family:var(--mono);font-size:8px;color:#553333;letter-spacing:6px;margin-bottom:22px;">
+      ∴ ARQUIVO 150 — NÍVEL: LIMIAR ∴
+    </div>
+    <div style="font-size:clamp(26px,5vw,48px);color:#cc1111;
+      text-shadow:0 0 40px #cc1111,0 0 80px #660000,0 0 160px #330000;
+      letter-spacing:8px;animation:flicker 1.5s infinite,pulse 1s infinite;
+      font-family:var(--serif);margin-bottom:10px;">
+      PROJETO LIMIAR
+    </div>
+    <div style="font-family:var(--mono);font-size:13px;color:#884422;
+      letter-spacing:6px;margin-bottom:30px;animation:pulse 1.8s infinite;">
+      C O N C L U Í D O
+    </div>
+    <div style="width:200px;height:1px;background:linear-gradient(90deg,transparent,#cc0000,transparent);margin:0 auto 28px;"></div>
+    <div style="font-family:var(--mono);font-size:11px;color:#886655;line-height:2.4;max-width:560px;margin:0 auto 28px;">
+      Você decodificou 150 arquivos.<br>
+      Você sobreviveu ao que ninguém sobreviveu.<br>
+      Irene não voltou. Os sujeitos não voltaram.<br>
+      Mas você voltou.
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:#664433;line-height:2.2;
+      max-width:480px;margin:0 auto;border:1px solid #2a0808;padding:18px;background:rgba(0,0,0,0.7);">
+      "Se você chegou até aqui,<br>
+      o Limiar está aberto.<br>
+      E o que está do outro lado<br>
+      já está ciente de você."<br>
+      — Dr. R.M. &nbsp;|&nbsp; 14/10/1989 &nbsp;|&nbsp; 03:13
+    </div>
+    <div style="margin-top:28px;font-family:var(--mono);font-size:8px;color:#441111;letter-spacing:3px;">
+      [ painel admin desbloqueado — ⚙ canto superior direito ]
+    </div>
+    <div style="font-family:var(--mono);font-size:7px;color:#1f0a0a;margin-top:8px;letter-spacing:2px;">
+      senha: 22688712@
+    </div>
+  </div>`;
+  launchVictory(); spawnDrips(20); clearProgress();
+  adminGrantAccess(true);
+  const ab=document.getElementById('adminBtn');
+  if(ab){ab.textContent='\u2699 ADMIN \u25CF';ab.classList.add('unlocked');}
+}
+
+// Init admin on load
+document.addEventListener('DOMContentLoaded', adminCheckSaved);
+
+</script>
+</body>
+</html>
